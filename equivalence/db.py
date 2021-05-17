@@ -55,9 +55,9 @@ class PlanGenerator:
             cursor.execute("set max_parallel_workers_per_gather = 0")
 
     def __init__(
-            self,
-            connection_parameters: typing.Union[ConnectionParameters, str],
-            schema_script=None,
+        self,
+        connection_parameters: typing.Union[ConnectionParameters, str],
+        schema_script=None,
     ):
         if type(connection_parameters) is str:
             self.connection = psycopg2.connect(connection_parameters)
