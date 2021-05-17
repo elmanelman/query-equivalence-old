@@ -1,2 +1,3 @@
-# query-equivalence
-A tool for checking the equivalence of SQL queries.
+# SQL Query Equivalence
+
+A command-line tool for checking the equivalence of SQL queries.
