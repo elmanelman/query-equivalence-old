@@ -61,7 +61,8 @@ def from_ast(root):
             op_constructor = expr_type_map[bool_operator]
             joined_args = functools.reduce(
                 lambda a, b: op_constructor(a, b),
-                map(traverse, arguments[1:]), traverse(arguments[0])
+                map(traverse, arguments[1:]),
+                traverse(arguments[0]),
             )
 
             return joined_args
@@ -137,15 +138,17 @@ def from_ast(root):
 
             return traverse(node["TypeCast"]["arg"])
         else:
-            raise NotImplementedError(f"unknown node type: {list(node.keys())[0]}")
+            raise NotImplementedError(
+                f"unknown node type: {list(node.keys())[0]}"
+            )
 
     return traverse(root)
 
 
 def from_str(s):
-    if s == "FALSE":
+    if s.upper() == "FALSE":
         return Const(False)
-    if s == "TRUE":
+    if s.upper() == "TRUE":
         return Const(True)
 
     return from_ast(get_ast(s))
@@ -169,7 +172,7 @@ class Const:
             return str(self.value).lower()
 
         if type(self.value) is str:
-            return f"\"{self.value}\""
+            return f'"{self.value}"'
 
         return str(self.value)
 

@@ -42,8 +42,7 @@ class Node(metaclass=ABCMeta):
 
     def to_graph(self):
         graph = graphviz.Digraph(
-            node_attr={"shape": "box"},
-            edge_attr={"arrowhead": "none"}
+            node_attr={"shape": "box"}, edge_attr={"arrowhead": "none"}
         )
 
         def traverse(node):
@@ -236,16 +235,13 @@ class Sort(Node):
 def from_dict(plan_dict) -> Node:
     def get_child(node_dict):
         if len(node_dict["Plans"]) != 1:
-            print(node_dict["Node Type"], len(node_dict["Plans"]))
+            # print(node_dict["Node Type"], len(node_dict["Plans"]))
             raise ValueError("get_child supports only unary nodes")
 
         return node_dict["Plans"][0]
 
     def traverse(node_dict):
         node_type = node_dict["Node Type"]
-
-        # if node_type == "Recursive Union":
-        #     raise ValueError("unsupported node type: " + node_type)
 
         if "Output" not in node_dict:
             output = node_dict["Plans"][0]["Output"]
@@ -266,11 +262,15 @@ def from_dict(plan_dict) -> Node:
                 if node_dict["One-Time Filter"][:4] == "NULL":
                     return Filter(output, [Result(output)], "FALSE")
 
-                return Filter(output, [Result(output)], node_dict["One-Time Filter"])
+                return Filter(
+                    output, [Result(output)], node_dict["One-Time Filter"]
+                )
 
             return Result(output)
         elif node_type == "Subquery Scan":
             return traverse(get_child(node_dict))
+        elif node_type == "Values Scan":
+            raise ValueError("shit")
         elif node_type == "Nested Loop":
             children = [traverse(d) for d in node_dict["Plans"]]
 
@@ -331,6 +331,8 @@ def from_dict(plan_dict) -> Node:
 
             return Sort(output, children, key)
         else:
+            # pprint(node_dict)
+
             raise ValueError("unknown node type: " + node_type)
 
     root = traverse(plan_dict)

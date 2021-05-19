@@ -1,5 +1,6 @@
 import collections
 import dataclasses
+import re
 import secrets
 import typing
 
@@ -70,6 +71,8 @@ class PlanGenerator:
         self.schema_script = schema_script
         if schema_script is not None:
             self.use_schema(schema_script)
+
+        self.values_relations = {}
 
         self.__configure_planner()
 
@@ -163,3 +166,37 @@ class PlanGenerator:
             plan_row = cursor.fetchone()
 
             return plan_row[0][0]["Plan"]
+
+    def init_values_relations(self, query):
+        values_re = re.compile(r"\(VALUES.+\)")
+
+        cursor = self.connection.cursor()
+
+        def repl(matchobj):
+            values_str = matchobj.group(0)
+            relation = f"qe_values_{secrets.token_hex(2)}"
+
+            cursor.execute(
+                f"create table {relation} as select * from {values_str} as {relation}"
+            )
+
+            cursor.execute(f"select * from {relation}")
+            self.values_relations[relation] = cursor.fetchall()
+
+            return relation
+
+        result_query = values_re.sub(repl, query)
+
+        self.connection.commit()
+
+        return result_query
+
+    def drop_values_relations(self):
+        if len(self.values_relations) > 0:
+            with self.connection.cursor() as cursor:
+                for relation in self.values_relations:
+                    cursor.execute(f"drop table {relation}")
+
+            self.connection.commit()
+
+        self.values_relations = {}
