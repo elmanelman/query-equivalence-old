@@ -269,8 +269,6 @@ def from_dict(plan_dict) -> Node:
             return Result(output)
         elif node_type == "Subquery Scan":
             return traverse(get_child(node_dict))
-        elif node_type == "Values Scan":
-            raise ValueError("shit")
         elif node_type == "Nested Loop":
             children = [traverse(d) for d in node_dict["Plans"]]
 
