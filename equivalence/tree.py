@@ -232,6 +232,19 @@ class Sort(Node):
         graph.node(self.uuid, self.graph_label())
 
 
+class Limit(Node):
+    def __init__(self, output, children, rows):
+        super().__init__(output, children)
+
+        self.rows = rows
+
+    def graph_label(self):
+        return f"limit {self.rows} rows"
+
+    def graph_node(self, graph):
+        graph.node(self.uuid, self.graph_label())
+
+
 def from_dict(plan_dict) -> Node:
     def get_child(node_dict):
         if len(node_dict["Plans"]) != 1:
@@ -328,6 +341,12 @@ def from_dict(plan_dict) -> Node:
             ]
 
             return Sort(output, children, key)
+        elif node_type == "Limit":
+            children = [
+                traverse(child_dict) for child_dict in node_dict["Plans"]
+            ]
+
+            return Limit(output, children, node_dict["Plan Rows"])
         else:
             # pprint(node_dict)
 

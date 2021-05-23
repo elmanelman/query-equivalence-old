@@ -213,6 +213,9 @@ class Checker:
 
             return self.compare_trees(t1.children[0], t2.children[0])
 
+        if isinstance(t1, tree.Limit) and isinstance(t2, tree.Limit):
+            return t1.rows == t2.rows
+
         through_ops = (
             tree.Product,
             tree.Union,
