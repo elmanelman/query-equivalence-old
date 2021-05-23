@@ -7,6 +7,9 @@ import typing
 import pglast
 import psycopg2
 
+from pglast.printer import RawStream
+import pglast.printers
+
 
 @dataclasses.dataclass(frozen=True)
 class ConnectionParameters:
@@ -168,28 +171,63 @@ class PlanGenerator:
             return plan_row[0][0]["Plan"]
 
     def init_values_relations(self, query):
-        values_re = re.compile(r"\(VALUES.+\)")
+        query_node = pglast.parse_sql(query)
+        values_nodes = []
+
+        def extract_values_nodes(node):
+            if type(node) is dict:
+                for key in node:
+                    if type(node[key]) is dict and "valuesLists" in node[key]:
+                        values_nodes.append(node)
+
+                    extract_values_nodes(node[key])
+
+            if type(node) is list:
+                for child in node:
+                    extract_values_nodes(child)
+
+        extract_values_nodes(query_node)
+
+        def replace_values_with_relation(node, relation):
+            node["SelectStmt"]["fromClause"] = [
+                {
+                    "RangeVar": {
+                        "inh": True,
+                        "relname": relation,
+                        "relpersistence": "p",
+                    }
+                }
+            ]
+
+            node["SelectStmt"]["targetList"] = [
+                {
+                    "ResTarget": {
+                        "val": {"ColumnRef": {"fields": [{"A_Star": {}}]}}
+                    }
+                }
+            ]
+
+            node["SelectStmt"].pop("valuesLists", None)
 
         cursor = self.connection.cursor()
 
-        def repl(matchobj):
-            values_str = matchobj.group(0)
+        for node in values_nodes:
+            values_str = RawStream()(pglast.Node({"RawStmt": {"stmt": node}}))
             relation = f"qe_values_{secrets.token_hex(2)}"
 
-            cursor.execute(
-                f"create table {relation} as select * from {values_str} as {relation}"
-            )
+            create_query = f"""
+                create table {relation} as
+                select * from ({values_str}) as {relation}"""
+            cursor.execute(create_query)
 
             cursor.execute(f"select * from {relation}")
             self.values_relations[relation] = cursor.fetchall()
 
-            return relation
-
-        result_query = values_re.sub(repl, query)
+            replace_values_with_relation(node, relation)
 
         self.connection.commit()
 
-        return result_query
+        return RawStream()(pglast.Node(query_node))
 
     def drop_values_relations(self):
         if len(self.values_relations) > 0:
