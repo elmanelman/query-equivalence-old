@@ -139,7 +139,7 @@ def from_ast(root):
             return traverse(node["TypeCast"]["arg"])
         else:
             raise NotImplementedError(
-                f"unknown node type: {list(node.keys())[0]}"
+                f"unknown expression node type: {list(node.keys())[0]}"
             )
 
     return traverse(root)

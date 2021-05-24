@@ -350,7 +350,7 @@ def from_dict(plan_dict) -> Node:
         else:
             # pprint(node_dict)
 
-            raise ValueError("unknown node type: " + node_type)
+            raise ValueError("unknown plan node type: " + node_type)
 
     root = traverse(plan_dict)
 
